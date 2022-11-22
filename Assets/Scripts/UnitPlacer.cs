@@ -1,26 +1,42 @@
-﻿
+﻿using JetBrains.Annotations;
 using UnityEngine;
 
 public class UnitPlacer : MonoBehaviour
 {
-    [SerializeField] private GameObject selectedTurret;
-    private MoneyManager _moneyManager;
-    private Camera _camera;
+    //todo - delete when we start using the UI to pass in turrets
+    [SerializeField] private GameObject tempTurretPrefab;
+
+    private BasicTurret selectedTurret;
+    private MoneyManager moneyManager;
+
+    private NeutralTile currentTile;
 
     private void Start()
     {
-        _camera = Camera.main;
-        _moneyManager = FindObjectOfType<MoneyManager>();
+        moneyManager = FindObjectOfType<MoneyManager>();
+        SetSelectedTurret(tempTurretPrefab);
+    }
+
+    public void SetSelectedTurret(GameObject turret)
+    {
+        selectedTurret = Instantiate(turret, transform.position, Quaternion.identity)
+            .GetComponent<BasicTurret>();
+        selectedTurret.EnterPlaceholderMode();
     }
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0) && _moneyManager.Money >= 500) //TODO - get cost of unit from selected unit
-        {
-            var position = _camera.ScreenToWorldPoint(Input.mousePosition);
-            position.z = _camera.nearClipPlane;
-            Instantiate(selectedTurret, position, Quaternion.identity);
-            _moneyManager.updateMoney(-500);
-        }
+        //todo - stop fudging the money bit
+        if (!Input.GetMouseButtonDown(0) || moneyManager.Money < 300 || currentTile is null) return;
+        selectedTurret.EnterActiveMode();
+        currentTile.SetUnitInTile(selectedTurret.gameObject);
+        SetSelectedTurret(tempTurretPrefab);
+        moneyManager.updateMoney(-300);
+    }
+
+    public void NotifyOfUpdatedTile([CanBeNull] NeutralTile tile)
+    {
+        currentTile = tile;
+        selectedTurret.transform.position = tile?.transform.position ?? transform.position;
     }
 }
